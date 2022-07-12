@@ -312,7 +312,7 @@ boolean Plugin_246(byte function, struct EventStruct *event, String& string)
           unsigned long m = millis();
 
 
-           /* byte errorcode = */ P246_data->modbus.readHoldingRegisters(0, 13, P246_data->values) ;
+           /* byte errorcode = */ P246_data->modbus.read_16b_HoldingRegisters(0, 13, P246_data->values) ;
 
           UserVar[event->BaseVarIndex]     = P246_data->values[P246_getRegister(P246_QUERY1)] / P246_getDevisor(P246_QUERY1);
           UserVar[event->BaseVarIndex + 1] = P246_data->values[P246_getRegister(P246_QUERY2)] / P246_getDevisor(P246_QUERY2);
@@ -384,7 +384,7 @@ boolean Plugin_246(byte function, struct EventStruct *event, String& string)
                    String log;
 
                    int16_t v[13] ;
-                   errorcode = P246_data->modbus.readHoldingRegisters(0, 13, v) ;
+                   errorcode = P246_data->modbus.read_16b_HoldingRegisters(0, 13, v) ;
                    log += "Uset  " + String(v[0]) +"\n" ;
                    log += "Iset  " + String(v[1]) +"\n" ;
                    log += "Uout  " + String(v[2]) +"\n" ;

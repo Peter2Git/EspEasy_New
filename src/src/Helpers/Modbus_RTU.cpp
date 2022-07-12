@@ -693,7 +693,7 @@ bool ModbusRTU_struct::process_32b_register(uint8_t slaveAddress, uint8_t functi
   return false;
 }
 
-    byte ModbusRTU_struct::readHoldingRegisters(short address, int Count , int16_t* values) {
+    byte ModbusRTU_struct::read_16b_HoldingRegisters(short address, int Count , int16_t* values) {
     // read more registers at once
     byte errorcode;
      process_16b_register(_modbus_address, MODBUS_READ_HOLDING_REGISTERS, address, Count, errorcode);
