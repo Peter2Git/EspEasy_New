@@ -1,0 +1,80 @@
+.. include:: ../Plugin/_plugin_substitutions_p02x.repl
+.. _P027_page:
+
+|P027_typename|
+==================================================
+
+|P027_shortinfo|
+
+Plugin details
+--------------
+
+Type: |P027_type|
+
+Name: |P027_name|
+
+Status: |P027_status|
+
+GitHub: |P027_github|_
+
+Maintainer: |P027_maintainer|
+
+Used libraries: |P027_usedlibraries|
+
+Supported hardware
+------------------
+
+Selectable I2C addresses:
+
+.. csv-table::
+    :header: "Address", "A0", "A1", ""
+    :widths: 10, 10, 10, 70
+
+    "0x40","GND","GND",""
+    "0x41","VS+","GND",""
+    "0x42","SDA","GND",""
+    "0x43","SCL","GND",""
+    "0x44","GND","VS+",""
+    "0x45","VS+","VS+",""
+    "0x46","SDA","VS+",""
+    "0x47","SCL","VS+",""
+    "0x48","GND","SDA",""
+    "0x49","VS+","SDA",""
+    "0x4A","SDA","SDA",""
+    "0x4B","SCL","SDA",""
+    "0x4C","GND","SCL",""
+    "0x4D","VS+","SCL",""
+    "0x4E","SDA","SCL",""
+    "0x4F","SCL","SCL",""
+
+|P027_usedby|
+
+.. Commands available
+.. ^^^^^^^^^^^^^^^^^^
+
+.. .. include:: P027_commands.repl
+
+.. Events
+.. ~~~~~~
+
+.. .. include:: P027_events.repl
+
+Change log
+----------
+
+.. versionchanged:: 2.0
+  ...
+
+  |added|
+  Major overhaul for 2.0 release.
+
+.. versionadded:: 1.0
+  ...
+
+  |added|
+  Initial release version.
+
+
+
+
+
