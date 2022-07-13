@@ -175,7 +175,7 @@ struct ModbusRTU_struct  {
                             short     startAddress,
                             uint32_t& result);
 
-  byte readHoldingRegisters(short address, int Count , int16_t* values) ;
+  byte read_16b_HoldingRegisters (short address, int Count , int16_t* values) ;
 
   int writeSpecialCommandRegister(uint8_t command);
 
