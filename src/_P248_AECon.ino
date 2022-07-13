@@ -215,7 +215,7 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
 
         addLog(LOG_LEVEL_INFO, "Init AECon SoftwareSerial");
 
-       Plugin_248_SoftSerial = new ESPeasySerial(static_cast<ESPEasySerialPort>(CONFIG_PORT), CONFIG_PIN1,CONFIG_PIN2,250);
+       Plugin_248_SoftSerial = new ESPeasySerial(static_cast<ESPEasySerialPort>(CONFIG_PORT), CONFIG_PIN1,CONFIG_PIN2,50);
 
        addLog(LOG_LEVEL_INFO, "Init AECon get baudrate");
 
@@ -281,7 +281,7 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
         } else if ( cmd.equalsIgnoreCase(F("AeConGetCurrent"))) {
               log = P248_Transmit(P248_DEV_ID, "S" );
               success = true;
-        } else if ( cmd.equalsIgnoreCase(F("AeConSetPower"))) {
+        } else if ( cmd.equalsIgnoreCase(F("AeConSetPowerLimit"))) {
               log = P248_Transmit_i(P248_DEV_ID, "L ",  result );
               success = true;
         } else if ( cmd.equalsIgnoreCase(F("AeConGetType"))) {
@@ -343,7 +343,7 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
   return success;
 }
 
-String P248_Transmit_f(int id, const char* c, float double) {
+String P248_Transmit_f(int id, const char* c,  double v) {
    char b[20];
    sprintf(b,"%s%04.1f", c, v );
    return P248_Transmit(id, b);
@@ -399,7 +399,7 @@ String P248_Transmit(int ID, const char * p) {
   addLog(LOG_LEVEL_INFO,b);
 
   Plugin_248_SoftSerial->flush();
-  //delay(5);
+  delay(5);
 
   unsigned long m = millis();
 
@@ -417,7 +417,9 @@ String P248_Transmit(int ID, const char * p) {
               byte scs = P248_Checksum((const byte*)&RxString.c_str()[1],RxString.length()-2);
               if(cs == scs) {
                 Success++;
-                RxString = RxString.substring(5,RxString.length()-2);
+                if(RxString.length()>7) {
+                    RxString = RxString.substring(5,RxString.length()-2);
+                }
               } else {
                  Errors++;
                  RxString = "E5"; // Prüfsummenfehler
@@ -445,9 +447,9 @@ String P248_Transmit(int ID, const char * p) {
       // if(RxString[0] == 'E' && Count < 3)
       // addLog(LOG_LEVEL_INFO, "Tx: " + TxString + ", retrey: " + String(Count) + ", Rx:" + RxString + " Errors: " + String(Errors) );
   m = millis() - m;
-  addLog(LOG_LEVEL_INFO,RxString + " in " + String(m) + "ms");
+  addLog(LOG_LEVEL_INFO,"'"+RxString + "' in " + String(m) + "ms");
 
- } while (Count-- > 0 && RxString[0] == 'E');
+ } while (Count-- > 0 && RxString.startsWith("E") );
 
   return RxString;
 }
