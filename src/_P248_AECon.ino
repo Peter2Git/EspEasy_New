@@ -1,4 +1,4 @@
-#include "_Plugin_Helper.h"
+//#include "_Plugin_Helper.h"
 #ifdef USES_P248
 
 # include "src/Helpers/_Plugin_Helper_serial.h"
@@ -54,7 +54,6 @@ unsigned long int Success = 0;
 ESPeasySerial* Plugin_248_SoftSerial = NULL;
 
 unsigned int Plugin_248_Counter = 0;
-unsigned int Plugin_248_Counter2 = 2;
 
 boolean Plugin_248_init = false;
 
@@ -68,7 +67,7 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
     case PLUGIN_DEVICE_ADD:
       {
         Device[++deviceCount].Number = PLUGIN_ID_248;
-        Device[deviceCount].Type = DEVICE_TYPE_TRIPLE;     // connected through 3 datapins
+        Device[deviceCount].Type = DEVICE_TYPE_SERIAL_PLUS1;     // connected through 3 datapins
         Device[deviceCount].VType = Sensor_VType::SENSOR_TYPE_QUAD;
         Device[deviceCount].Ports = 0;
         Device[deviceCount].PullUpOption = false;
@@ -146,15 +145,16 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
             P248_QUERY4 = P248_QUERY4_DFLT;
           }
   
-          addFormNumericBox(F("AeSGI Address"), P248_DEV_ID_LABEL, P248_DEV_ID, 1, 9999);
-  
+
           {
             String options_baudrate[6];
             for (int i = 0; i < 6; ++i) {
               options_baudrate[i] = String(P248_storageValueToBaudrate(i));
             }
-            addFormSelector(F("Baud Rate"), P248_BAUDRATE_LABEL, 6, options_baudrate, NULL, P248_BAUDRATE );
+            addFormSelector(F("Baud Rate"), P248_BAUDRATE_LABEL, 6, options_baudrate, nullptr, P248_BAUDRATE );
+            addUnit(F("baud"));
           }
+
           break;
         }
 
@@ -215,13 +215,13 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
 
         addLog(LOG_LEVEL_INFO, "Init AECon SoftwareSerial");
 
-       Plugin_248_SoftSerial = new ESPeasySerial(static_cast<ESPEasySerialPort>(CONFIG_PORT), CONFIG_PIN1,CONFIG_PIN2,1024);
+       Plugin_248_SoftSerial = new ESPeasySerial(static_cast<ESPEasySerialPort>(CONFIG_PORT), CONFIG_PIN1,CONFIG_PIN2,250);
 
        addLog(LOG_LEVEL_INFO, "Init AECon get baudrate");
 
       unsigned int baudrate = P248_storageValueToBaudrate(P248_BAUDRATE);
 
-       addLog(LOG_LEVEL_INFO, "Init AECon baudrate");
+       addLog(LOG_LEVEL_INFO, String ("Init AECon baudrate: " + String(baudrate)) );
 
        if(Plugin_248_SoftSerial != NULL) Plugin_248_SoftSerial->begin(baudrate);
 
@@ -259,6 +259,12 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
          String arg1 = parseStringKeepCase(arguments, 2);
          String arg2 = parseStringKeepCase(arguments, 3);
 
+             double result=0;
+             if (!isError(Calculate(arg1, result))) {
+                addLog(LOG_LEVEL_INFO,"CalcError: " + String(arg1) );
+             }
+
+
         addLog(LOG_LEVEL_INFO, arguments +", p1: " + String(cmd) + ", p2: " +String(arg1) + ", p3: " +String(arg2));
 
         String log  = "";
@@ -267,16 +273,16 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
               log = P248_Transmit(P248_DEV_ID, "B 0 0.00" );
               success = true;
         } else if ( cmd.equalsIgnoreCase(F("AeConSetUIMode"))) {
-              log = P248_Transmit_f(P248_DEV_ID, "B 2 ", arg1.c_str() );
+              log = P248_Transmit_f(P248_DEV_ID, "B 2 ", result );
               success = true;
         } else if ( cmd.equalsIgnoreCase(F("AeConSetCurrent"))) {
-              log = P248_Transmit_f(P248_DEV_ID, "S ", arg1.c_str() );
+              log = P248_Transmit_f(P248_DEV_ID, "S ", result );
               success = true;
         } else if ( cmd.equalsIgnoreCase(F("AeConGetCurrent"))) {
               log = P248_Transmit(P248_DEV_ID, "S" );
               success = true;
         } else if ( cmd.equalsIgnoreCase(F("AeConSetPower"))) {
-              log = P248_Transmit_i(P248_DEV_ID, "L ",  arg1.c_str() );
+              log = P248_Transmit_i(P248_DEV_ID, "L ",  result );
               success = true;
         } else if ( cmd.equalsIgnoreCase(F("AeConGetType"))) {
               log = P248_Transmit(P248_DEV_ID, "9");
@@ -337,15 +343,15 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
   return success;
 }
 
-String P248_Transmit_f(int id, const char* c, const char * v) {
+String P248_Transmit_f(int id, const char* c, float double) {
    char b[20];
-   sprintf(b,"%s%04.1f", c, atof(v) );
+   sprintf(b,"%s%04.1f", c, v );
    return P248_Transmit(id, b);
 }
 
-String P248_Transmit_i(int id, const char* c, const char* v) {
+String P248_Transmit_i(int id, const char* c, int v) {
    char b[20];
-   sprintf(b,"%s%03d", c, atoi(v) );
+   sprintf(b,"%s%03d", c, v );
    return P248_Transmit(id, b);
 }
 
@@ -377,7 +383,7 @@ void P248_enableTx(bool on) {
 String P248_Transmit(int ID, const char * p) {
   int    Count = 5;
   String RxString;
-  Plugin_248_SoftSerial->setTimeout(20); // 50ms
+  Plugin_248_SoftSerial->setTimeout(10); // 20ms
 
    char b[20];
   sprintf(b,"#%02d%s%c",ID , p, (char) 0x0d);
@@ -393,7 +399,7 @@ String P248_Transmit(int ID, const char * p) {
   addLog(LOG_LEVEL_INFO,b);
 
   Plugin_248_SoftSerial->flush();
-  delay(5);
+  //delay(5);
 
   unsigned long m = millis();
 

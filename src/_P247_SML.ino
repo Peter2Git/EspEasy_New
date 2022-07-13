@@ -482,7 +482,7 @@ boolean Plugin_247(byte function, struct EventStruct *event, String& string)
     case PLUGIN_DEVICE_ADD:
       {
         Device[++deviceCount].Number = PLUGIN_ID_247;
-        Device[deviceCount].Type = DEVICE_TYPE_TRIPLE;     // connected through 3 datapins
+        Device[deviceCount].Type = DEVICE_TYPE_SERIAL;     // connected through 3 datapins
         Device[deviceCount].VType = Sensor_VType::SENSOR_TYPE_QUAD;
         Device[deviceCount].Ports = 0;
         Device[deviceCount].PullUpOption = false;
