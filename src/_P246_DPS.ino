@@ -344,8 +344,6 @@ boolean Plugin_246(byte function, struct EventStruct *event, String& string)
              String arg2 = parseStringKeepCase(arguments, 3);
 
              double result=0;
-            // int returnCode = Calculate(arg1.c_str(), result);
-
              if (!isError(Calculate(arg1, result))) {
                 addLog(LOG_LEVEL_INFO,"CalcError: " + String(arg1) );
              }
