@@ -383,36 +383,30 @@ void P248_enableTx(bool on) {
 String P248_Transmit(int ID, const char * p) {
   int    Count = 5;
   String RxString;
-  Plugin_248_SoftSerial->setTimeout(10); // 20ms
+  Plugin_248_SoftSerial->setTimeout(300); // 30ms
 
    char b[20];
-  sprintf(b,"#%02d%s%c",ID , p, (char) 0x0d);
-//   sprintf(b,"#%02d%s\n",ID , p );
-
+   sprintf(b,"#%02d%s",ID , p);
 
  do {
 
-//  MySerial.enableTx(true);
-  P248_enableTx(true);
-
-  Plugin_248_SoftSerial->print(b);
   addLog(LOG_LEVEL_INFO,b);
-
   Plugin_248_SoftSerial->flush();
-  delay(5);
+  
+  while(Plugin_248_SoftSerial->available() > 0) {
+      addLog(LOG_LEVEL_INFO, "StillInBuffer: " + String(Plugin_248_SoftSerial->read()));
+  }
+
+  Plugin_248_SoftSerial->println(b);
 
   unsigned long m = millis();
-
-  Plugin_248_SoftSerial->listen();
-  P248_enableTx(false);
-//  Plugin_248_SoftSerial.enableTx(false);
 
   RxString = Plugin_248_SoftSerial->readStringUntil(0x0d);
   if(RxString.length() > 3 ) {
     if(RxString[0] == 0x0a ) {
       if(RxString[1] == '*' ) {
         if(RxString.substring(2,4) == String(ID) ) {
-           // if(RxString[4] == values[0])  {
+            if(RxString[4] == p[0])  {
               byte cs = RxString[RxString.length()-1];
               byte scs = P248_Checksum((const byte*)&RxString.c_str()[1],RxString.length()-2);
               if(cs == scs) {
@@ -424,7 +418,11 @@ String P248_Transmit(int ID, const char * p) {
                  Errors++;
                  RxString = "E5"; // Prüfsummenfehler
               }
-
+            }
+            else
+            {
+              RxString = "E4"; // falscher Befehl in der Antwort
+            }
               // addLog(LOG_LEVEL_INFO, "cs: "+ String(cs) + " berechnet: " + String(scs) );
 
         } else {
