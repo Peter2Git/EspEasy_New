@@ -642,7 +642,8 @@ boolean Plugin_247(byte function, struct EventStruct *event, String& string)
       case PLUGIN_TEN_PER_SECOND:
       {
         P247_data_struct *P247_data =  static_cast<P247_data_struct *>(getPluginTaskData(event->TaskIndex));
-         if (nullptr != P247_data){ 
+         if (nullptr != P247_data)
+         { 
            P247_data->SMLPoll(event);
          }
          else

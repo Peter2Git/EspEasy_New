@@ -21,8 +21,8 @@
 
 #define P248_DEV_ID          PCONFIG(0)
 #define P248_DEV_ID_LABEL    PCONFIG_LABEL(0)
-#define P248_MODEL           PCONFIG(1)
-#define P248_MODEL_LABEL     PCONFIG_LABEL(1)
+
+
 #define P248_BAUDRATE        PCONFIG(2)
 #define P248_BAUDRATE_LABEL  PCONFIG_LABEL(2)
 #define P248_QUERY1          PCONFIG(3)
@@ -32,7 +32,6 @@
 #define P248_DEPIN           CONFIG_PIN3
 
 #define P248_DEV_ID_DFLT     1
-#define P248_MODEL_DFLT      0  // SDM120C
 #define P248_BAUDRATE_DFLT   3  // 9600 baud
 #define P248_QUERY1_DFLT     0  // Voltage (V)
 #define P248_QUERY2_DFLT     1  // Current (A)
@@ -57,6 +56,8 @@ unsigned int Plugin_248_Counter = 0;
 
 boolean Plugin_248_init = false;
 
+double Current = 0;
+
 boolean Plugin_248(byte function, struct EventStruct *event, String& string)
 {
   boolean success = false;
@@ -67,7 +68,7 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
     case PLUGIN_DEVICE_ADD:
       {
         Device[++deviceCount].Number = PLUGIN_ID_248;
-        Device[deviceCount].Type = DEVICE_TYPE_SERIAL_PLUS1;     // connected through 3 datapins
+        Device[deviceCount].Type = DEVICE_TYPE_SERIAL;     // connected through 3 datapins
         Device[deviceCount].VType = Sensor_VType::SENSOR_TYPE_QUAD;
         Device[deviceCount].Ports = 0;
         Device[deviceCount].PullUpOption = false;
@@ -119,7 +120,6 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
     case PLUGIN_SET_DEFAULTS:
       {
         P248_DEV_ID = P248_DEV_ID_DFLT;
-        P248_MODEL = P248_MODEL_DFLT;
         P248_BAUDRATE = P248_BAUDRATE_DFLT;
         P248_QUERY1 = P248_QUERY1_DFLT;
         P248_QUERY2 = P248_QUERY2_DFLT;
@@ -137,7 +137,6 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
           if (P248_DEV_ID == 0 || P248_DEV_ID > 247 || P248_BAUDRATE >= 6) {
             // Load some defaults
             P248_DEV_ID = P248_DEV_ID_DFLT;
-            P248_MODEL = P248_MODEL_DFLT;
             P248_BAUDRATE = P248_BAUDRATE_DFLT;
             P248_QUERY1 = P248_QUERY1_DFLT;
             P248_QUERY2 = P248_QUERY2_DFLT;
@@ -186,8 +185,6 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
 
     case PLUGIN_WEBFORM_SAVE:
       {
-         // serialHelper_webformSave(event);
-          // Save output selector parameters.
           for (byte i = 0; i < P248_NR_OUTPUT_VALUES; ++i) {
             const byte pconfigIndex = i + P248_QUERY1_CONFIG_POS;
             const byte choice = PCONFIG(pconfigIndex);
@@ -195,7 +192,6 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
           }
 
           P248_DEV_ID = getFormItemInt(P248_DEV_ID_LABEL);
-          P248_MODEL = getFormItemInt(P248_MODEL_LABEL);
           P248_BAUDRATE = getFormItemInt(P248_BAUDRATE_LABEL);
 
           Plugin_248_init = false; // Force device setup next time
@@ -260,17 +256,17 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
          String arg2 = parseStringKeepCase(arguments, 3);
 
              double result=0;
-             if (!isError(Calculate(arg1, result))) {
+             if (isError(Calculate(arg1, result))) {
                 addLog(LOG_LEVEL_INFO,"CalcError: " + String(arg1) );
              }
 
 
-        addLog(LOG_LEVEL_INFO, arguments +", p1: " + String(cmd) + ", p2: " +String(arg1) + ", p3: " +String(arg2));
+        // addLog(LOG_LEVEL_INFO, arguments +", p1: " + String(cmd) + ", p2: " +String(arg1) + ", p3: " +String(arg2));
 
         String log  = "";
 
         if ( cmd.equalsIgnoreCase(F("AeConSetMPPMode")))  {
-              log = P248_Transmit(P248_DEV_ID, "B 0 0.00" );
+              log = P248_Transmit_f2(P248_DEV_ID, "B 0 ", result );
               success = true;
         } else if ( cmd.equalsIgnoreCase(F("AeConSetUIMode"))) {
               log = P248_Transmit_f(P248_DEV_ID, "B 2 ", result );
@@ -295,6 +291,21 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
               success = true;
         } else if ( cmd.equalsIgnoreCase(F("AeConGetPower"))) {
               log = P248_Transmit(P248_DEV_ID, "L" );
+              success = true;
+        } else if ( cmd.equalsIgnoreCase(F("AeConIncCurrent"))) {
+
+              double NewCurrent = Current + result;
+              double Max = 10.0;
+              Calculate(arg2, Max);
+
+              if(Max > 10.0) Max = 10.0;
+              if(NewCurrent < 0) NewCurrent = 0;
+              if(NewCurrent > Max) NewCurrent = Max;
+
+              // addLog(LOG_LEVEL_INFO, "IncCurrent by  " + String(result) + " Current " + String(Current)+ ", new Current " +String(NewCurrent) + ", Max: " +String(Max));
+
+              log = P248_Transmit_f(P248_DEV_ID, "S ", NewCurrent );
+              
               success = true;
         }
 
@@ -328,7 +339,7 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
                    c = strtok(NULL, " ");
                    if(c==0) break;
               }
-
+              Current = v[2]; 
               UserVar[event->BaseVarIndex]     = v[P248_QUERY1];
               UserVar[event->BaseVarIndex + 1] = v[P248_QUERY2];
               UserVar[event->BaseVarIndex + 2] = v[P248_QUERY3];
@@ -341,6 +352,12 @@ boolean Plugin_248(byte function, struct EventStruct *event, String& string)
       }
   }
   return success;
+}
+
+String P248_Transmit_f2(int id, const char* c,  double v) {
+   char b[20];
+   sprintf(b,"%s%04.2f", c, v );
+   return P248_Transmit(id, b);
 }
 
 String P248_Transmit_f(int id, const char* c,  double v) {
@@ -381,9 +398,9 @@ void P248_enableTx(bool on) {
 }
 
 String P248_Transmit(int ID, const char * p) {
-  int    Count = 5;
+  int    Count = 1;
   String RxString;
-  Plugin_248_SoftSerial->setTimeout(300); // 30ms
+  Plugin_248_SoftSerial->setTimeout(100); // 30ms
 
    char b[20];
    sprintf(b,"#%02d%s",ID , p);
@@ -402,7 +419,7 @@ String P248_Transmit(int ID, const char * p) {
   unsigned long m = millis();
 
   RxString = Plugin_248_SoftSerial->readStringUntil(0x0d);
-  if(RxString.length() > 3 ) {
+  if(RxString.length() > 5 ) {
     if(RxString[0] == 0x0a ) {
       if(RxString[1] == '*' ) {
         if(RxString.substring(2,4) == String(ID) ) {
@@ -410,10 +427,8 @@ String P248_Transmit(int ID, const char * p) {
               byte cs = RxString[RxString.length()-1];
               byte scs = P248_Checksum((const byte*)&RxString.c_str()[1],RxString.length()-2);
               if(cs == scs) {
-                Success++;
-                if(RxString.length()>7) {
-                    RxString = RxString.substring(5,RxString.length()-2);
-                }
+                 Success++;
+                 RxString = RxString.substring(5,RxString.length()-2);
               } else {
                  Errors++;
                  RxString = "E5"; // Prüfsummenfehler
@@ -451,16 +466,6 @@ String P248_Transmit(int ID, const char * p) {
 
   return RxString;
 }
-
-
-
-void P248_Transmit(unsigned int ID, unsigned short MessageID, float Value) {
-
-
-
-}
-
-
 
 
 unsigned int P248_getRegister(byte query, byte model) {
